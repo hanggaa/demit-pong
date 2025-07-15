@@ -8,17 +8,13 @@ let player, computer, ball;
 let aspectRatio = 4 / 3;
 let playerProfileId = null;
 let isGameOver = true;
-
 let equippedPaddle = {
     color: 'white',
     speedBonus: 0,
     lengthMultiplier: 1.0 
 };
-
 const winningScore = 5;
 const PADDLE_DEFAULT_HEIGHT = 100;
-
-// --- KONTROL GAME STATE ---
 
 export function startGameLoop() {
     console.log("Preparing to start game...");
@@ -28,7 +24,6 @@ export function startGameLoop() {
     player.score = 0;
     computer.score = 0;
     render();
-
     let countdown = 6;
     const countdownInterval = setInterval(() => {
         render();
@@ -63,8 +58,6 @@ function handleGameOver(winnerText) {
     }, 10);
 }
 
-// --- LOGIKA INTI GAME ---
-
 function gameLoop() {
     if (isGameOver) return;
     update();
@@ -76,11 +69,9 @@ function update() {
     ball.x += ball.velocityX;
     ball.y += ball.velocityY;
     computer.y += (ball.y - (computer.y + computer.height / 2)) * 0.1;
-
     if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
         ball.velocityY = -ball.velocityY;
     }
-
     let scored = false;
     if (ball.x - ball.radius < 0) {
         computer.score++;
@@ -89,7 +80,6 @@ function update() {
         player.score++;
         scored = true;
     }
-    
     if (scored) {
         if (player.score >= winningScore) {
             handleGameOver("YOU WIN!");
@@ -99,20 +89,16 @@ function update() {
             resetBall();
         }
     }
-    
     let targetPaddle = ball.velocityX < 0 ? player : computer;
     if (collision(ball, targetPaddle)) {
         let collidePoint = (ball.y - (targetPaddle.y + targetPaddle.height / 2));
         collidePoint = collidePoint / (targetPaddle.height / 2);
         let angleRad = (Math.PI / 4) * collidePoint;
         let direction = (ball.velocityX < 0) ? 1 : -1;
-        
         let currentSpeed = ball.speed;
         if (targetPaddle === player) {
             currentSpeed += equippedPaddle.speedBonus;
-            console.log(`Player hit with bonus! Speed: ${currentSpeed}`);
         }
-
         ball.velocityX = direction * currentSpeed * Math.cos(angleRad);
         ball.velocityY = currentSpeed * Math.sin(angleRad);
         ball.speed += 0.5;
@@ -127,15 +113,12 @@ function render() {
     context.textAlign = 'center';
     context.fillText(player.score, canvas.width / 4, canvas.height / 5);
     context.fillText(computer.score, 3 * canvas.width / 4, canvas.height / 5);
-    
     player.height = PADDLE_DEFAULT_HEIGHT * equippedPaddle.lengthMultiplier;
     player.color = equippedPaddle.color;
     context.fillStyle = player.color;
     context.fillRect(player.x, player.y, player.width, player.height);
-    
     context.fillStyle = 'white';
     context.fillRect(computer.x, computer.y, computer.width, computer.height);
-    
     context.fillStyle = 'white';
     context.beginPath();
     context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
@@ -161,8 +144,6 @@ function movePaddle(evt) {
     let rect = canvas.getBoundingClientRect();
     player.y = evt.clientY - rect.top - player.height / 2;
 }
-
-// --- INISIALISASI & FUNGSI ON-CHAIN ---
 
 export function initializeGame() {
     canvas = document.getElementById('gameCanvas');
@@ -231,6 +212,7 @@ export async function fetchAndDisplayData(address) {
         if (!playerProfile) {
             onchainInfoDiv.classList.add('hidden');
             profileCreatorDiv.classList.remove('hidden');
+            addCreateProfileListener();
             equippedPaddle = { color: 'white', speedBonus: 0, lengthMultiplier: 1.0 };
             renderStatic();
         } else {
@@ -244,11 +226,10 @@ export async function fetchAndDisplayData(address) {
                     const fields = paddleData.data.content.fields;
                     equippedPaddle.color = fields.color_hex;
                     equippedPaddle.speedBonus = parseInt(fields.speed_bonus);
-                    // === PERBAIKAN FINAL DI SINI ===
                     switch (fields.rarity) {
-                        case "Legendary": equippedPaddle.lengthMultiplier = 3.6; break;
-                        case "Epic": equippedPaddle.lengthMultiplier = 2.4; break;
-                        case "Master": equippedPaddle.lengthMultiplier = 1.6; break;
+                        case "Legendary": equippedPaddle.lengthMultiplier = 2.6; break;
+                        case "Epic": equippedPaddle.lengthMultiplier = 1.9; break;
+                        case "Master": equippedPaddle.lengthMultiplier = 1.4; break;
                         default: equippedPaddle.lengthMultiplier = 1.0;
                     }
                 }
@@ -278,31 +259,26 @@ function displayPaddles(paddles, profile) {
     }
     inventoryDiv.innerHTML = '';
     const equippedId = profile ? profile.data.content.fields.equipped_paddle : null;
-    
     paddles.forEach(paddle => {
         const fields = paddle.data.content.fields;
         const paddleId = paddle.data.objectId;
         const isEquipped = paddleId === equippedId;
         const rarity = fields.rarity.toLowerCase();
-        
-        // Tentukan multiplier panjang berdasarkan rarity untuk ditampilkan
+        const imagePath = `${import.meta.env.BASE_URL}${rarity}.png`;
         let lengthBonusText = '';
         switch (fields.rarity) {
-            case "Legendary": lengthBonusText = "+160% length"; break; // 2.6x - 1.0x = 1.6x -> 160%
-            case "Epic": lengthBonusText = "+90% length"; break;      // 1.9x - 1.0x = 0.9x -> 90%
-            case "Master": lengthBonusText = "+40% length"; break;    // 1.4x - 1.0x = 0.4x -> 40%
+            case "Legendary": lengthBonusText = "+160% length"; break;
+            case "Epic": lengthBonusText = "+90% length"; break;
+            case "Master": lengthBonusText = "+40% length"; break;
         }
-
         const paddleDiv = document.createElement('div');
         paddleDiv.className = 'paddle-item' + (isEquipped ? ' equipped' : '');
-        
-        // --- PERUBAHAN PADA innerHTML ---
         paddleDiv.innerHTML = `
-            <img src="/${rarity}.png" alt="${fields.rarity} Paddle" class="item-image small" />
+            <img src="${imagePath}" alt="${fields.rarity} Paddle" class="item-image small" />
             <div class="item-details">
                 <p style="background-color:${fields.color_hex}; color: white; padding: 2px 4px; display:inline-block; border: 1px solid white;"><strong>${fields.rarity}</strong></p>
                 <p>Bonus: +${fields.speed_bonus} speed</p>
-                <p>Bonus: ${lengthBonusText}</p> <!-- TAMPILKAN BONUS PANJANG DI SINI -->
+                <p>Bonus: ${lengthBonusText}</p>
                 ${isEquipped ? '<strong>(Equipped)</strong>' : `<button class="equip-btn" data-id="${paddleId}">Equip</button>`}
             </div>
         `;
@@ -322,6 +298,14 @@ function addInventoryClickListener() {
             }
             window.handleEquip(playerProfileId, paddleId);
         }
+    });
+}
+
+function addCreateProfileListener() {
+    const createBtn = document.getElementById('create-profile-btn');
+    createBtn.replaceWith(createBtn.cloneNode(true)); 
+    document.getElementById('create-profile-btn').addEventListener('click', () => {
+        window.handleCreateProfile();
     });
 }
 
@@ -356,9 +340,9 @@ function displayMarketplaceItems(listings) {
     const marketplaceDiv = document.getElementById('marketplace-display');
     marketplaceDiv.innerHTML = '';
     const items = [
-        { name: "Legendary", data: listings.legendary_listing, img: "/legendary.png" },
-        { name: "Epic", data: listings.epic_listing, img: "/epic.png" },
-        { name: "Master", data: listings.master_listing, img: "/master.png" },
+        { name: "Legendary", data: listings.legendary_listing, img: `${import.meta.env.BASE_URL}legendary.png` },
+        { name: "Epic", data: listings.epic_listing, img: `${import.meta.env.BASE_URL}epic.png` },
+        { name: "Master", data: listings.master_listing, img: `${import.meta.env.BASE_URL}master.png` },
     ];
     items.forEach(item => {
         const fields = item.data.fields;
