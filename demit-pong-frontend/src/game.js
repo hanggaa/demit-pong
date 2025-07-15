@@ -1,74 +1,103 @@
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 
-const PACKAGE_ID = "0x5ac0b359d04b9688c848f0bf04d13230b8e24f7b2c726e26a627d631c3dcd9bf";
-// Tambahkan ini:
-const MARKETPLACE_ID = "0x5c51e59c8d5ded8a31c97c22ef9aead06c32cd6756a258572bfeb422a6582774";
+export const PACKAGE_ID = "0x078ccfaf1fdfbbb6020461d94e154f845fd5cf7aba114fba919a4067aa4c9145";
+export const MARKETPLACE_ID = "0x4bddb21a7848224864c75f624a4af7f8be09e43bab95be79c968bd29672460b8"; 
 
 let canvas, context;
 let player, computer, ball;
-// Di src/game.js, di bagian atas
-let playerProfileId = null; // Variabel untuk menyimpan ID profil
-let aspectRatio = 4 / 3; // Rasio aspek klasik Pong
+let aspectRatio = 4 / 3;
+let playerProfileId = null;
+let gameLoopId = null; 
 
-function resizeCanvas() {
-    const containerWidth = canvas.parentElement.clientWidth;
-    const maxWidth = 800; // Lebar maksimum yang kita inginkan
-    
-    // Gunakan lebar yang lebih kecil antara lebar kontainer dan lebar maksimum
-    let newWidth = Math.min(containerWidth, maxWidth) - 20; // Kurangi 20px untuk margin
+const winningScore = 5;
 
-    // Hitung tinggi baru berdasarkan rasio aspek
-    let newHeight = newWidth / aspectRatio;
+// --- KONTROL GAME STATE ---
 
-    // Set ukuran rendering kanvas
-    canvas.width = newWidth;
-    canvas.height = newHeight;
+export function startGameLoop() {
+    console.log("Starting game loop...");
+    document.getElementById('play-menu').classList.add('hidden');
     
-    // Skala ulang semua elemen game berdasarkan ukuran baru
-    // (Ini adalah bagian yang disederhanakan. Untuk game kompleks, Anda butuh matriks transformasi)
-    // Untuk Pong, kita bisa mengatur ulang posisi awal saja.
+    resetBall();
+    player.score = 0;
+    computer.score = 0;
     
-    console.log(`Canvas resized to: ${newWidth} x ${newHeight}`);
-    renderStatic(); // Gambar ulang game dengan ukuran baru
+    if (!gameLoopId) {
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
 }
 
-export function initializeGame() {
-    canvas = document.getElementById('gameCanvas');
-    if (!canvas) return;
-    context = canvas.getContext('2d');
-    
-    // === PERUBAHAN UTAMA DI SINI ===
-    // Jangan set ukuran kanvas secara manual lagi.
-    // Panggil fungsi resize untuk pertama kali.
-    resizeCanvas(); 
-
-    // Tambahkan event listener untuk menangani perubahan ukuran jendela/rotasi layar
-    window.addEventListener('resize', resizeCanvas);
-
-    const paddleWidth = 15;
-    const paddleHeight = 100;
-
-    // Posisikan elemen berdasarkan ukuran kanvas dinamis
-    player = { x: 10, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
-    computer = { x: canvas.width - paddleWidth - 10, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
-    ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, speed: 7, velocityX: 5, velocityY: 5, color: 'white' };
-    
-    console.log("Game Canvas Initialized and Responsive.");
+function stopGameLoop() {
+    if (gameLoopId) {
+        cancelAnimationFrame(gameLoopId);
+        gameLoopId = null;
+        console.log("Game loop stopped.");
+    }
 }
 
-function renderStatic() {
-    if (!context || !player || !computer || !ball) return;
-    
-    // Atur ulang posisi berdasarkan ukuran kanvas saat ini
-    // Ini penting agar posisi tetap benar setelah resize
-    player.y = canvas.height / 2 - player.height / 2;
-    computer.x = canvas.width - computer.width - 10;
-    computer.y = canvas.height / 2 - computer.height / 2;
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
+function showGameOver(winnerText) {
+    stopGameLoop();
+    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'white';
+    context.font = `${canvas.width / 15}px 'Press Start 2P'`;
+    context.textAlign = 'center';
+    context.fillText(winnerText, canvas.width / 2, canvas.height / 2);
 
+    document.getElementById('play-menu').classList.remove('hidden');
+}
+
+
+// --- LOGIKA INTI GAME ---
+
+function gameLoop() {
+    update();
+    render();
+    gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+function update() {
+    ball.x += ball.velocityX;
+    ball.y += ball.velocityY;
+
+    computer.y += (ball.y - (computer.y + computer.height / 2)) * 0.1;
+
+    if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+        ball.velocityY = -ball.velocityY;
+    }
+
+    if (ball.x - ball.radius < 0) {
+        computer.score++;
+        resetBall();
+    } else if (ball.x + ball.radius > canvas.width) {
+        player.score++;
+        resetBall();
+    }
+    
+    let targetPaddle = ball.velocityX < 0 ? player : computer;
+    if (collision(ball, targetPaddle)) {
+        let collidePoint = (ball.y - (targetPaddle.y + targetPaddle.height / 2));
+        collidePoint = collidePoint / (targetPaddle.height / 2);
+        let angleRad = (Math.PI / 4) * collidePoint;
+        let direction = (ball.velocityX < 0) ? 1 : -1;
+        ball.velocityX = direction * ball.speed * Math.cos(angleRad);
+        ball.velocityY = ball.speed * Math.sin(angleRad);
+        ball.speed += 0.5;
+    }
+    
+    if (player.score >= winningScore) {
+        showGameOver("YOU WIN!");
+    } else if (computer.score >= winningScore) {
+        showGameOver("COMPUTER WINS");
+    }
+}
+
+function render() {
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = `${canvas.width / 10}px 'Press Start 2P'`;
+    context.textAlign = 'center';
+    context.fillText(player.score, canvas.width / 4, canvas.height / 5);
+    context.fillText(computer.score, 3 * canvas.width / 4, canvas.height / 5);
     context.fillStyle = player.color;
     context.fillRect(player.x, player.y, player.width, player.height);
     context.fillStyle = computer.color;
@@ -79,125 +108,184 @@ function renderStatic() {
     context.fill();
 }
 
-// --- FUNGSI ON-CHAIN DENGAN DEBUGGING LOG ---
+function resetBall(){
+    if (!canvas) return;
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.speed = 7;
+    ball.velocityX = -ball.velocityX || -5;
+}
 
+function collision(b, p){
+    p.top = p.y;
+    p.bottom = p.y + p.height;
+    p.left = p.x;
+    p.right = p.x + p.width;
+    
+    b.top = b.y - b.radius;
+    b.bottom = b.y + b.radius;
+    b.left = b.x - b.radius;
+    b.right = b.x + b.radius;
+    
+    return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+}
+
+function movePaddle(evt) {
+    if (!canvas) return;
+    let rect = canvas.getBoundingClientRect();
+    player.y = evt.clientY - rect.top - player.height / 2;
+}
+
+
+// --- INISIALISASI & FUNGSI ON-CHAIN ---
+
+export function initializeGame() {
+    canvas = document.getElementById('gameCanvas');
+    if (!canvas) return;
+    context = canvas.getContext('2d');
+    
+    window.addEventListener('resize', resizeCanvas);
+    canvas.addEventListener('mousemove', movePaddle);
+    
+    const paddleWidth = 15;
+    const paddleHeight = 100;
+
+    player = { x: 10, y: 0, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
+    computer = { x: 0, y: 0, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
+    ball = { x: 0, y: 0, radius: 10, speed: 7, velocityX: 5, velocityY: 5, color: 'white' };
+    
+    resizeCanvas();
+    console.log("Game Canvas Initialized and Responsive.");
+}
+
+function resizeCanvas() {
+    if (!canvas) return;
+    const containerWidth = canvas.parentElement.clientWidth;
+    const maxWidth = 800;
+    let newWidth = Math.min(containerWidth, maxWidth) - 20;
+    if (newWidth < 300) newWidth = 300; // Lebar minimum
+    let newHeight = newWidth / aspectRatio;
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    renderStatic();
+}
+
+function renderStatic() {
+    if (!context || !player || !computer || !ball) return;
+    
+    player.y = canvas.height / 2 - player.height / 2;
+    computer.x = canvas.width - computer.width - 10;
+    computer.y = canvas.height / 2 - computer.height / 2;
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = `${canvas.width / 10}px 'Press Start 2P'`;
+    context.textAlign = 'center';
+    context.fillText('0', canvas.width / 4, canvas.height / 5);
+    context.fillText('0', 3 * canvas.width / 4, canvas.height / 5);
+    context.fillStyle = player.color;
+    context.fillRect(player.x, player.y, player.width, player.height);
+    context.fillStyle = computer.color;
+    context.fillRect(computer.x, computer.y, computer.width, computer.height);
+    context.fillStyle = ball.color;
+    context.beginPath();
+    context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
+    context.fill();
+}
+
+// ... (Sisa fungsi on-chain tidak berubah dari versi sebelumnya)
 export async function fetchAndDisplayData(address) {
-    console.log("--- Starting fetchAndDisplayData ---");
+    const profileCreatorDiv = document.getElementById('profile-creator');
+    const onchainInfoDiv = document.getElementById('onchain-info');
     const inventoryDiv = document.getElementById('inventory-display');
     const balanceDiv = document.getElementById('dp-balance');
-    inventoryDiv.innerHTML = '<em>(1/5) Fetching your assets...</em>';
-    balanceDiv.innerHTML = '<em>(1/5) Fetching balance...</em>';
-
+    inventoryDiv.innerHTML = '<em>Fetching inventory...</em>';
+    balanceDiv.innerHTML = '<em>Fetching balance...</em>';
     const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
-
     try {
-        console.log("(2/5) Calling suiClient.getOwnedObjects for address:", address);
-        const ownedObjects = await suiClient.getOwnedObjects({ 
-            owner: address, 
-            options: { showContent: true, showType: true } // Minta lebih banyak detail
-        });
-        console.log("(3/5) Successfully fetched ownedObjects:", ownedObjects);
-
+        const ownedObjects = await suiClient.getOwnedObjects({ owner: address, options: { showContent: true } });
         const paddles = ownedObjects.data.filter(obj => obj.data?.content?.type === `${PACKAGE_ID}::paddle::Paddle`);
-        console.log("(4/5) Filtered paddles:", paddles);
-
         const playerProfile = ownedObjects.data.find(obj => obj.data?.content?.type === `${PACKAGE_ID}::profile::PlayerProfile`);
-        console.log("(5/5) Found player profile:", playerProfile);
-
-        // Di dalam fetchAndDisplayData, setelah baris 'const playerProfile = ...'
-        if (playerProfile) {
-            playerProfileId = playerProfile.data.objectId; // Simpan ID profilnya
-            console.log("Player profile ID stored:", playerProfileId);
-        }
-
-        // Tampilkan Paddles
-        // ... (kode display tetap sama) ...
-        if (paddles.length === 0) {
-            inventoryDiv.innerHTML = 'You have no paddles. Visit the marketplace!';
+        if (!playerProfile) {
+            onchainInfoDiv.classList.add('hidden');
+            profileCreatorDiv.classList.remove('hidden');
         } else {
-            inventoryDiv.innerHTML = '';
-            const equippedId = playerProfile ? playerProfile.data.content.fields.equipped_paddle : null;
-            paddles.forEach(paddle => {
-                const fields = paddle.data.content.fields;
-                const paddleId = paddle.data.objectId;
-                const isEquipped = paddleId === equippedId;
-                const paddleDiv = document.createElement('div');
-                paddleDiv.className = 'paddle-item' + (isEquipped ? ' equipped' : '');
-                paddleDiv.innerHTML = `
-                    <p style="background-color:${fields.color_hex}; color: white; padding: 2px 4px; display:inline-block; border: 1px solid white;"><strong>${fields.rarity}</strong></p>
-                    <p>Bonus: +${fields.speed_bonus} speed</p>
-                    ${isEquipped ? '<strong>(Equipped)</strong>' : `<button class="equip-btn" data-id="${paddleId}">Equip</button>`}
-                `;
-                inventoryDiv.appendChild(paddleDiv);
-            });
+            playerProfileId = playerProfile.data.objectId;
+            onchainInfoDiv.classList.remove('hidden');
+            profileCreatorDiv.classList.add('hidden');
+            displayPaddles(paddles, playerProfile);
+            addInventoryClickListener();
         }
-
-        // Tampilkan Saldo $DP
         const dpCoinType = `${PACKAGE_ID}::demit_pong_coin::DEMIT_PONG_COIN`;
         const balance = await suiClient.getBalance({ owner: address, coinType: dpCoinType });
         const actualBalance = parseInt(balance.totalBalance) / 1_000_000;
         balanceDiv.innerHTML = `<strong>$DP Balance:</strong> ${actualBalance.toFixed(2)}`;
-        // Tambahkan event listener ke seluruh kontainer inventory
-        addInventoryClickListener();
-
-
     } catch (error) {
-        // INI BAGIAN PALING PENTING
-        console.error("--- ERROR inside fetchAndDisplayData ---", error);
-        inventoryDiv.innerHTML = 'Error fetching assets. Check console (F12).';
-        balanceDiv.innerHTML = 'Error fetching balance. Check console (F12).';
+        console.error("Failed to fetch on-chain data:", error);
+        inventoryDiv.innerHTML = 'Error fetching assets.';
+        balanceDiv.innerHTML = 'Error fetching balance.';
     }
-    // Buat fungsi baru di luar fetchAndDisplayData
-    function addInventoryClickListener() {
-        const inventoryDiv = document.getElementById('inventory-display');
-        // Hapus listener lama untuk menghindari duplikasi
-        inventoryDiv.replaceWith(inventoryDiv.cloneNode(true));
-        document.getElementById('inventory-display').addEventListener('click', (event) => {
-            // Cek apakah yang diklik adalah tombol equip
-            if (event.target && event.target.classList.contains('equip-btn')) {
-                const paddleId = event.target.dataset.id;
-                if (!playerProfileId) {
-                    alert("Player profile not found! Cannot equip.");
-                    return;
-                }
-                
-                // Panggil fungsi "jembatan" yang kita buat di main.jsx
-                window.handleEquip(playerProfileId, paddleId, PACKAGE_ID);
+}
+
+function displayPaddles(paddles, profile) {
+    const inventoryDiv = document.getElementById('inventory-display');
+    if (paddles.length === 0) {
+        inventoryDiv.innerHTML = 'You have no paddles. Visit the marketplace!';
+        return;
+    }
+    inventoryDiv.innerHTML = '';
+    const equippedId = profile ? profile.data.content.fields.equipped_paddle : null;
+    paddles.forEach(paddle => {
+        const fields = paddle.data.content.fields;
+        const paddleId = paddle.data.objectId;
+        const isEquipped = paddleId === equippedId;
+        const paddleDiv = document.createElement('div');
+        paddleDiv.className = 'paddle-item' + (isEquipped ? ' equipped' : '');
+        paddleDiv.innerHTML = `
+            <p style="background-color:${fields.color_hex}; color: white; padding: 2px 4px; display:inline-block; border: 1px solid white;"><strong>${fields.rarity}</strong></p>
+            <p>Bonus: +${fields.speed_bonus} speed</p>
+            ${isEquipped ? '<strong>(Equipped)</strong>' : `<button class="equip-btn" data-id="${paddleId}">Equip</button>`}
+        `;
+        inventoryDiv.appendChild(paddleDiv);
+    });
+}
+
+function addInventoryClickListener() {
+    const inventoryDiv = document.getElementById('inventory-display');
+    inventoryDiv.replaceWith(inventoryDiv.cloneNode(true));
+    document.getElementById('inventory-display').addEventListener('click', (event) => {
+        if (event.target && event.target.classList.contains('equip-btn')) {
+            const paddleId = event.target.dataset.id;
+            if (!playerProfileId) {
+                alert("Player profile not found! Cannot equip.");
+                return;
             }
-        });
-    }
+            window.handleEquip(playerProfileId, paddleId);
+        }
+    });
 }
 
 export function resetOnChainData() {
     document.getElementById('inventory-display').innerHTML = 'Connect your wallet to see your paddles.';
     document.getElementById('dp-balance').innerHTML = 'Connect wallet to see balance...';
+    document.getElementById('profile-creator').classList.add('hidden');
+    document.getElementById('onchain-info').classList.remove('hidden');
 }
 
-// Di src/game.js, di paling bawah file
-
-// --- FUNGSI BARU UNTUK MARKETPLACE ---
-
 export async function fetchMarketplaceData() {
-    console.log("--- Fetching marketplace data ---");
     const marketplaceDiv = document.getElementById('marketplace-display');
     marketplaceDiv.innerHTML = '<em>Loading store items...</em>';
-
     const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
-
     try {
-        // Kita menggunakan getObject karena kita tahu persis ID objek yang kita inginkan
-        const marketplaceObject = await suiClient.getObject({
-            id: MARKETPLACE_ID,
-            options: { showContent: true },
-        });
-
+        const marketplaceObject = await suiClient.getObject({ id: MARKETPLACE_ID, options: { showContent: true } });
         if (marketplaceObject.data) {
-            console.log("Marketplace data fetched:", marketplaceObject.data.content.fields);
             displayMarketplaceItems(marketplaceObject.data.content.fields);
+            addMarketplaceClickListener();
         } else {
             marketplaceDiv.innerHTML = 'Could not find marketplace object.';
         }
-
     } catch (error) {
         console.error("Failed to fetch marketplace data:", error);
         marketplaceDiv.innerHTML = 'Error loading store. Check console (F12).';
@@ -207,30 +295,39 @@ export async function fetchMarketplaceData() {
 function displayMarketplaceItems(listings) {
     const marketplaceDiv = document.getElementById('marketplace-display');
     marketplaceDiv.innerHTML = '';
-
     const items = [
         { name: "Legendary", data: listings.legendary_listing },
         { name: "Epic", data: listings.epic_listing },
         { name: "Master", data: listings.master_listing },
     ];
-
     items.forEach(item => {
-        // === PERBAIKAN DI SINI ===
-        // Kita perlu mengakses 'fields' di dalam setiap data listing.
-        const fields = item.data.fields; 
+        const fields = item.data.fields;
         const priceInSUI = fields.price / 1_000_000_000;
         const remaining = fields.supply - fields.sold_count;
-
         const itemDiv = document.createElement('div');
         itemDiv.className = 'market-item';
         itemDiv.innerHTML = `
             <h4>${item.name} Paddle</h4>
             <p>Price: ${priceInSUI.toFixed(1)} SUI</p>
             <p>Stock: ${remaining} / ${fields.supply}</p>
-            <button class="buy-btn" data-rarity="${item.name}" ${remaining === 0 ? 'disabled' : ''}>
+            <button class="buy-btn" data-rarity="${item.name}" data-price="${priceInSUI}" ${remaining === 0 ? 'disabled' : ''}>
                 ${remaining === 0 ? 'Sold Out' : 'Buy'}
             </button>
         `;
         marketplaceDiv.appendChild(itemDiv);
+    });
+}
+
+function addMarketplaceClickListener() {
+    const marketplaceDiv = document.getElementById('marketplace-display');
+    marketplaceDiv.replaceWith(marketplaceDiv.cloneNode(true));
+    document.getElementById('marketplace-display').addEventListener('click', (event) => {
+        if (event.target && event.target.classList.contains('buy-btn')) {
+            const rarity = event.target.dataset.rarity;
+            const priceSUI = parseFloat(event.target.dataset.price);
+            if (confirm(`Are you sure you want to buy the ${rarity} paddle for ${priceSUI} SUI?`)) {
+                window.handleBuy(rarity, priceSUI);
+            }
+        }
     });
 }
