@@ -1,8 +1,0 @@
-PackageID: 0x1c98724a21a2134c1c0b049399b5bfe92840f541c67e5fc89a1f58d55845a130
-----------------------------------------------------------------------------------
-Baru
-PackageID: 0x78cdbefb1a57c14e5d097d5bf25f5b42513a68d58efc66e2ee5087918dfa3e2e
-Modules: paddle, profile
-
-ID Profil Anda: 0xaf731893e33ad931a0837b561b47aea516661542db93239eef431bbc2066904f
-ID Dayung Epic Anda: 0x57d3233219fcf018717415ca18587192be996e1094542c834a88052071640fcd

@@ -1,0 +1,41 @@
+PackageID: 0x1c98724a21a2134c1c0b049399b5bfe92840f541c67e5fc89a1f58d55845a130
+----------------------------------------------------------------------------------
+Baru
+PackageID: 0x78cdbefb1a57c14e5d097d5bf25f5b42513a68d58efc66e2ee5087918dfa3e2e
+Modules: paddle, profile
+
+ID Profil Anda: 0xaf731893e33ad931a0837b561b47aea516661542db93239eef431bbc2066904f
+ID Dayung Epic Anda: 0x57d3233219fcf018717415ca18587192be996e1094542c834a88052071640fcd
+----------------------------------------------------------------------------------
+Baru 2
+PackageID Terbaru (Gunakan ini terus):
+0xf426be1b3ad0d3f8d625e0b544924d259fc59dc3ea43ba508f4242765acdbcb1
+Lihat di Published Objects -> Modules: marketplace, paddle, profile. Ini adalah bukti bahwa ketiga modul Anda sekarang berada dalam satu paket yang sama.
+AdminCap ID Terbaru Anda:
+Lihat di Created Objects -> ObjectType: ...::marketplace::AdminCap
+0xae13841ff7e95ac667606bf58b44a00df247e711931f189d0f9d28ea6c222ac0
+Ini adalah "kunci" Anda untuk membuat dan mengelola marketplace. Simpan ID ini.
+ObjectID: 0x57e0903b647afa235b14d49f21a53637bcd065e4f91458a34fce43029ab4707c
+Owner: Shared
+ObjectType: ...::marketplace::Marketplace
+----------------------------------------------------------------------------------
+PackageID Final (MASTER ID):
+0x5ac0b359d04b9688c848f0bf04d13230b8e24f7b2c726e26a627d631c3dcd9bf
+Lihat di Published Objects -> Modules: demit_pong_coin, marketplace, paddle, profile. Keempat modul Anda sekarang hidup dalam satu paket yang harmonis. Ini adalah fondasi on-chain game Anda.
+Kunci-Kunci Kerajaan Anda: Di bawah Created Objects, Anda sekarang memiliki semua "kunci admin" yang Anda butuhkan:
+TreasuryCap untuk Koin $DP:
+ObjectID: 0x0dc71418faa6c23b65d2dc47cdcaf2b6edf957bad0a607230120c6f869efb1fe
+Ini adalah "mesin cetak uang" Anda. Hanya dengan objek ini Anda bisa membuat koin $DP baru.
+AdminCap untuk Marketplace:
+ObjectID: 0x45e04cd0d33d0670b2a7142080057dd1f48d00a0643fd7393418420ee3ffb47e
+Ini adalah kunci untuk membuat (atau nanti memodifikasi) toko Anda.
+CoinMetadata untuk Koin $DP:
+ObjectID: 0x1bda9bce70dd8da72a85469386175e9a773fa96c7be01046c78fbe5c43a74be8
+Ini adalah objek publik yang mendeskripsikan apa itu koin $DP, yang bisa dibaca oleh dompet dan explorer.
+
+Marketplace Dibuat: Transaksi pertama berhasil membuat objek Marketplace yang di-share.
+ID Marketplace: 0x5c51e59c8d5ded8a31c97c22ef9aead06c32cd6756a258572bfeb422a6582774
+Profil Pemain Dibuat: Transaksi kedua berhasil membuat profil untuk Anda.
+ID Profil Anda: 0xd9676d9751c2a1b56ef3424542a8ed9c3e42b9b661df9dcbfb753622a6a121f0
+Dayung Legendary Dicetak (Minted): Transaksi ketiga berhasil membuat NFT dayung untuk Anda.
+ID Dayung Anda: 0x73d60cbc79118ce4f03fe2ed37ccd0144ce37238dabd18488d599c60f613301c

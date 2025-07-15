@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Demit Pong - SUI Edition</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="header">
+        <h1>PONG</h1>
+        <div id="wallet-connector"></div>
+      </div>
+      <canvas id="gameCanvas"></canvas>
+      <div id="onchain-info">
+        <h2>My On-Chain Assets</h2>
+        <div id="dp-balance">Connect wallet to see balance...</div>
+        <h3>My Paddles (Inventory)</h3>
+        <div id="inventory-display">
+          Connect your wallet to see your paddles.
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
