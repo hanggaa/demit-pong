@@ -4,6 +4,8 @@ const PACKAGE_ID = "0x5ac0b359d04b9688c848f0bf04d13230b8e24f7b2c726e26a627d631c3
 
 let canvas, context;
 let player, computer, ball;
+// Di src/game.js, di bagian atas
+let playerProfileId = null; // Variabel untuk menyimpan ID profil
 
 export function initializeGame() {
     canvas = document.getElementById('gameCanvas');
@@ -62,6 +64,12 @@ export async function fetchAndDisplayData(address) {
         const playerProfile = ownedObjects.data.find(obj => obj.data?.content?.type === `${PACKAGE_ID}::profile::PlayerProfile`);
         console.log("(5/5) Found player profile:", playerProfile);
 
+        // Di dalam fetchAndDisplayData, setelah baris 'const playerProfile = ...'
+        if (playerProfile) {
+            playerProfileId = playerProfile.data.objectId; // Simpan ID profilnya
+            console.log("Player profile ID stored:", playerProfileId);
+        }
+
         // Tampilkan Paddles
         // ... (kode display tetap sama) ...
         if (paddles.length === 0) {
@@ -89,12 +97,34 @@ export async function fetchAndDisplayData(address) {
         const balance = await suiClient.getBalance({ owner: address, coinType: dpCoinType });
         const actualBalance = parseInt(balance.totalBalance) / 1_000_000;
         balanceDiv.innerHTML = `<strong>$DP Balance:</strong> ${actualBalance.toFixed(2)}`;
+        // Tambahkan event listener ke seluruh kontainer inventory
+        addInventoryClickListener();
+
 
     } catch (error) {
         // INI BAGIAN PALING PENTING
         console.error("--- ERROR inside fetchAndDisplayData ---", error);
         inventoryDiv.innerHTML = 'Error fetching assets. Check console (F12).';
         balanceDiv.innerHTML = 'Error fetching balance. Check console (F12).';
+    }
+    // Buat fungsi baru di luar fetchAndDisplayData
+    function addInventoryClickListener() {
+        const inventoryDiv = document.getElementById('inventory-display');
+        // Hapus listener lama untuk menghindari duplikasi
+        inventoryDiv.replaceWith(inventoryDiv.cloneNode(true));
+        document.getElementById('inventory-display').addEventListener('click', (event) => {
+            // Cek apakah yang diklik adalah tombol equip
+            if (event.target && event.target.classList.contains('equip-btn')) {
+                const paddleId = event.target.dataset.id;
+                if (!playerProfileId) {
+                    alert("Player profile not found! Cannot equip.");
+                    return;
+                }
+                
+                // Panggil fungsi "jembatan" yang kita buat di main.jsx
+                window.handleEquip(playerProfileId, paddleId, PACKAGE_ID);
+            }
+        });
     }
 }
 

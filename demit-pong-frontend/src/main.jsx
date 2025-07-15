@@ -1,34 +1,66 @@
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { SuiClientProvider, WalletProvider, ConnectButton, useCurrentAccount } from '@mysten/dapp-kit';
+import { SuiClientProvider, WalletProvider, ConnectButton, useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@mysten/dapp-kit/dist/index.css';
 
-// Import CSS dan fungsi-fungsi game kita
+// === PERBAIKAN DI SINI ===
+// Impor getFullnodeUrl saja, kita tidak butuh testnetConnection
+import { getFullnodeUrl } from '@mysten/sui/client';
+
 import './style.css';
 import { initializeGame, fetchAndDisplayData, resetOnChainData } from './game.js';
 
 const queryClient = new QueryClient();
 
-// Ini adalah komponen jembatan kita
-function App() {
-  // 1. Gunakan hook resmi untuk mendapatkan status akun saat ini
-  const account = useCurrentAccount();
+const networks = {
+	testnet: { url: getFullnodeUrl('testnet') },
+};
 
-  // 2. Gunakan useEffect untuk bereaksi setiap kali 'account' berubah
+
+function App() {
+  const account = useCurrentAccount();
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+
+  const handleEquip = (profileId, paddleId, packageId) => {
+    console.log(`Preparing to equip paddle ${paddleId} on profile ${profileId}`);
+    const tx = new Transaction();
+    tx.moveCall({
+      target: `${packageId}::profile::equip_paddle`,
+      arguments: [ tx.object(profileId), tx.object(paddleId) ],
+    });
+
+    signAndExecute(
+      { transaction: tx },
+      {
+        onSuccess: (result) => {
+          console.log("Equip transaction successful! Digest:", result.digest);
+          alert("Paddle equipped successfully! Refreshing data...");
+          if (account) {
+            setTimeout(() => {
+                fetchAndDisplayData(account.address);
+            }, 2000);
+          }
+        },
+        onError: (error) => {
+          console.error("Equip transaction failed", error);
+          alert("Equip failed: " + error.message);
+        },
+      }
+    );
+  };
+
   useEffect(() => {
+    window.handleEquip = handleEquip;
+
     if (account) {
-      // Jika ada akun, panggil fungsi fetch data kita dari game.js
-      console.log("Wallet connected! Fetching data for:", account.address);
       fetchAndDisplayData(account.address);
     } else {
-      // Jika tidak ada akun (terputus), panggil fungsi reset
-      console.log("Wallet disconnected.");
       resetOnChainData();
     }
-  }, [account]); // Array ini memastikan kode di atas hanya berjalan saat 'account' berubah
+  }, [account]);
 
-  // Komponen ini hanya merender tombolnya
   return <ConnectButton />;
 }
 
@@ -40,7 +72,7 @@ if (connectorContainer) {
     root.render(
         <React.StrictMode>
             <QueryClientProvider client={queryClient}>
-                <SuiClientProvider>
+                <SuiClientProvider networks={networks} defaultNetwork="testnet">
                     <WalletProvider>
                         <App />
                     </WalletProvider>
@@ -50,5 +82,4 @@ if (connectorContainer) {
     );
 }
 
-// Inisialisasi kanvas game kita, terpisah dari logika dompet
 initializeGame();
