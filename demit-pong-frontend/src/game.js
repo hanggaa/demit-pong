@@ -1,32 +1,72 @@
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 
 const PACKAGE_ID = "0x5ac0b359d04b9688c848f0bf04d13230b8e24f7b2c726e26a627d631c3dcd9bf";
+// Tambahkan ini:
+const MARKETPLACE_ID = "0x5c51e59c8d5ded8a31c97c22ef9aead06c32cd6756a258572bfeb422a6582774";
 
 let canvas, context;
 let player, computer, ball;
 // Di src/game.js, di bagian atas
 let playerProfileId = null; // Variabel untuk menyimpan ID profil
+let aspectRatio = 4 / 3; // Rasio aspek klasik Pong
+
+function resizeCanvas() {
+    const containerWidth = canvas.parentElement.clientWidth;
+    const maxWidth = 800; // Lebar maksimum yang kita inginkan
+    
+    // Gunakan lebar yang lebih kecil antara lebar kontainer dan lebar maksimum
+    let newWidth = Math.min(containerWidth, maxWidth) - 20; // Kurangi 20px untuk margin
+
+    // Hitung tinggi baru berdasarkan rasio aspek
+    let newHeight = newWidth / aspectRatio;
+
+    // Set ukuran rendering kanvas
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Skala ulang semua elemen game berdasarkan ukuran baru
+    // (Ini adalah bagian yang disederhanakan. Untuk game kompleks, Anda butuh matriks transformasi)
+    // Untuk Pong, kita bisa mengatur ulang posisi awal saja.
+    
+    console.log(`Canvas resized to: ${newWidth} x ${newHeight}`);
+    renderStatic(); // Gambar ulang game dengan ukuran baru
+}
 
 export function initializeGame() {
     canvas = document.getElementById('gameCanvas');
     if (!canvas) return;
     context = canvas.getContext('2d');
-    canvas.width = 800;
-    canvas.height = 600;
+    
+    // === PERUBAHAN UTAMA DI SINI ===
+    // Jangan set ukuran kanvas secara manual lagi.
+    // Panggil fungsi resize untuk pertama kali.
+    resizeCanvas(); 
+
+    // Tambahkan event listener untuk menangani perubahan ukuran jendela/rotasi layar
+    window.addEventListener('resize', resizeCanvas);
 
     const paddleWidth = 15;
     const paddleHeight = 100;
 
+    // Posisikan elemen berdasarkan ukuran kanvas dinamis
     player = { x: 10, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
     computer = { x: canvas.width - paddleWidth - 10, y: canvas.height / 2 - paddleHeight / 2, width: paddleWidth, height: paddleHeight, color: 'white', score: 0 };
     ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, speed: 7, velocityX: 5, velocityY: 5, color: 'white' };
     
-    renderStatic();
-    console.log("Game Canvas Initialized.");
+    console.log("Game Canvas Initialized and Responsive.");
 }
 
 function renderStatic() {
-    // ... (kode render tetap sama)
+    if (!context || !player || !computer || !ball) return;
+    
+    // Atur ulang posisi berdasarkan ukuran kanvas saat ini
+    // Ini penting agar posisi tetap benar setelah resize
+    player.y = canvas.height / 2 - player.height / 2;
+    computer.x = canvas.width - computer.width - 10;
+    computer.y = canvas.height / 2 - computer.height / 2;
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = player.color;
@@ -131,4 +171,66 @@ export async function fetchAndDisplayData(address) {
 export function resetOnChainData() {
     document.getElementById('inventory-display').innerHTML = 'Connect your wallet to see your paddles.';
     document.getElementById('dp-balance').innerHTML = 'Connect wallet to see balance...';
+}
+
+// Di src/game.js, di paling bawah file
+
+// --- FUNGSI BARU UNTUK MARKETPLACE ---
+
+export async function fetchMarketplaceData() {
+    console.log("--- Fetching marketplace data ---");
+    const marketplaceDiv = document.getElementById('marketplace-display');
+    marketplaceDiv.innerHTML = '<em>Loading store items...</em>';
+
+    const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
+
+    try {
+        // Kita menggunakan getObject karena kita tahu persis ID objek yang kita inginkan
+        const marketplaceObject = await suiClient.getObject({
+            id: MARKETPLACE_ID,
+            options: { showContent: true },
+        });
+
+        if (marketplaceObject.data) {
+            console.log("Marketplace data fetched:", marketplaceObject.data.content.fields);
+            displayMarketplaceItems(marketplaceObject.data.content.fields);
+        } else {
+            marketplaceDiv.innerHTML = 'Could not find marketplace object.';
+        }
+
+    } catch (error) {
+        console.error("Failed to fetch marketplace data:", error);
+        marketplaceDiv.innerHTML = 'Error loading store. Check console (F12).';
+    }
+}
+
+function displayMarketplaceItems(listings) {
+    const marketplaceDiv = document.getElementById('marketplace-display');
+    marketplaceDiv.innerHTML = '';
+
+    const items = [
+        { name: "Legendary", data: listings.legendary_listing },
+        { name: "Epic", data: listings.epic_listing },
+        { name: "Master", data: listings.master_listing },
+    ];
+
+    items.forEach(item => {
+        // === PERBAIKAN DI SINI ===
+        // Kita perlu mengakses 'fields' di dalam setiap data listing.
+        const fields = item.data.fields; 
+        const priceInSUI = fields.price / 1_000_000_000;
+        const remaining = fields.supply - fields.sold_count;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'market-item';
+        itemDiv.innerHTML = `
+            <h4>${item.name} Paddle</h4>
+            <p>Price: ${priceInSUI.toFixed(1)} SUI</p>
+            <p>Stock: ${remaining} / ${fields.supply}</p>
+            <button class="buy-btn" data-rarity="${item.name}" ${remaining === 0 ? 'disabled' : ''}>
+                ${remaining === 0 ? 'Sold Out' : 'Buy'}
+            </button>
+        `;
+        marketplaceDiv.appendChild(itemDiv);
+    });
 }

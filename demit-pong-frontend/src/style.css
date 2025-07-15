@@ -1,19 +1,142 @@
-body {
-    background-color: #000;
-    color: #fff;
-    font-family: 'Press Start 2P', cursive; /* Font gaya retro, bisa diganti */
-    text-align: center;
+/* --- Aturan Dasar & Penguncian Scroll Halaman --- */
+html, body {
+    height: 100%; /* Pastikan html dan body memenuhi seluruh tinggi viewport */
     margin: 0;
-    overflow: hidden; /* Mencegah scrollbar yang tidak perlu */
+    padding: 0;
+    background-color: #000;
+    font-family: 'Press Start 2P', cursive;
+    color: #fff;
+    /* === KUNCI DI SINI === */
+    /* Mencegah seluruh halaman bisa di-scroll */
+    overflow: hidden; 
 }
 
-h1 {
-    margin-top: 20px;
-    margin-bottom: 0;
+/* --- Layout Aplikasi Utama dengan Flexbox Vertikal --- */
+#app {
+    display: flex;
+    flex-direction: column; /* Tumpuk elemen dari atas ke bawah */
+    align-items: center;    /* Pusatkan secara horizontal */
+    height: 100%;           /* Buat #app memenuhi seluruh tinggi body */
+    gap: 20px;
+    padding-top: 20px;
+}
+
+#header {
+    /* Header tidak perlu tumbuh, ukurannya tetap */
+    flex-shrink: 0;
 }
 
 canvas {
-    background-color: #000;
     border: 2px solid #fff;
-    margin-top: 20px;
+    flex-shrink: 0; 
+    
+    /* Buat lebar kanvas responsif */
+    width: 100%; 
+    max-width: 800px; /* Batasi lebar maksimum di layar besar */
+    
+    /* Biarkan tinggi diatur oleh JavaScript untuk menjaga rasio aspek */
+    height: auto; 
+    
+    /* Sedikit margin agar tidak menempel di tepi layar kecil */
+    box-sizing: border-box; /* Pastikan border termasuk dalam lebar */
+    margin: 0 10px;
+}
+
+
+/* --- KONTENER KONTEN YANG BISA DI-SCROLL --- */
+.main-content {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 20px 20px 20px; /* Beri sedikit padding bawah */
+    
+    /* === KEAJAIBAN DI SINI === */
+    flex-grow: 1;      /* Izinkan kontainer ini untuk tumbuh dan mengisi sisa ruang */
+    overflow-y: auto;  /* Aktifkan scroll vertikal HANYA untuk area ini */
+    overflow-x: hidden;/* Sembunyikan scroll horizontal */
+
+    /* Styling tambahan untuk scrollbar agar terlihat lebih baik di tema gelap (opsional) */
+    scrollbar-width: thin;
+    scrollbar-color: #555 #222;
+}
+.main-content::-webkit-scrollbar {
+    width: 8px;
+}
+.main-content::-webkit-scrollbar-track {
+    background: #222;
+}
+.main-content::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+
+
+/* --- Styling Kolom & Item (tidak banyak berubah) --- */
+#marketplace-section, #onchain-info {
+    border: 2px solid white;
+    padding: 20px;
+    border-radius: 8px;
+    flex: 1;
+    min-width: 350px;
+    /* Kita tambahkan height: max-content agar tidak terpotong */
+    height: max-content; 
+}
+
+#marketplace-display, #inventory-display {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.market-item, .paddle-item {
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+}
+
+.market-item:last-child, .paddle-item:last-child {
+    border-bottom: none;
+}
+
+/* Tombol (tidak berubah) */
+button {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    font-family: 'Press Start 2P', cursive;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+button:hover:not(:disabled) {
+    background-color: #ddd;
+}
+
+button:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.equipped {
+    opacity: 0.7;
+    border-left: 4px solid lightgreen;
+    padding-left: 10px;
+}
+
+/* === MEDIA QUERY UNTUK LAYAR KECIL (MOBILE) === */
+/* Aturan ini akan berlaku jika lebar layar 768px atau kurang */
+@media (max-width: 768px) {
+    .main-content {
+        /* Ubah layout menjadi satu kolom di ponsel */
+        flex-direction: column;
+        gap: 20px; /* Kurangi jarak */
+    }
+
+    #marketplace-section, #onchain-info {
+        /* Pastikan lebar minimum tidak terlalu besar */
+        min-width: 90%;
+    }
 }
