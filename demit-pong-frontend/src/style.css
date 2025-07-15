@@ -149,6 +149,36 @@ button:disabled {
     margin-top: 15px;
 }
 
+.market-item, .paddle-item {
+    display: flex;
+    align-items: center; /* Sejajarkan item secara vertikal */
+    gap: 15px; /* Jarak antara gambar dan detail */
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+}
+
+.item-details {
+    flex-grow: 1; /* Biarkan bagian detail mengisi sisa ruang */
+}
+
+/* Ukuran untuk gambar item */
+.item-image {
+    width: 100px; /* Ukuran gambar di marketplace */
+    height: auto;
+    object-fit: contain; /* Pastikan gambar tidak gepeng */
+    background-color: #222; /* Latar belakang gelap jika gambar transparan */
+    border-radius: 4px;
+}
+
+.item-image.small {
+    width: 60px; /* Ukuran gambar yang lebih kecil di inventory */
+}
+
+/* Pindahkan tombol di marketplace ke paling kanan */
+.market-item button {
+    margin-left: auto; /* Trik flexbox untuk mendorong ke kanan */
+}
+
 /* --- Media Query untuk Layar Kecil (Mobile) --- */
 @media (max-width: 768px) {
     .main-content {

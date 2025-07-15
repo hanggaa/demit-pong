@@ -7,52 +7,65 @@ let canvas, context;
 let player, computer, ball;
 let aspectRatio = 4 / 3;
 let playerProfileId = null;
-let gameLoopId = null; 
+let equippedPaddleColor = 'white';
+let isGameOver = true;
 
 const winningScore = 5;
 
-// --- KONTROL GAME STATE ---
-
 export function startGameLoop() {
-    console.log("Starting game loop...");
+    console.log("Preparing to start game...");
     document.getElementById('play-menu').classList.add('hidden');
+    
+    isGameOver = false;
     
     resetBall();
     player.score = 0;
     computer.score = 0;
+    render();
+
+    let countdown = 6;
+    const countdownInterval = setInterval(() => {
+        render();
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'white';
+        context.font = `${canvas.width / 5}px 'Press Start 2P'`;
+        context.textAlign = 'center';
+        context.fillText(countdown, canvas.width / 2, canvas.height / 2 + (canvas.width / 20));
+        
+        countdown--;
+
+        if (countdown < 0) {
+            clearInterval(countdownInterval);
+            console.log("GO! Starting game loop...");
+            gameLoop();
+        }
+    }, 1000);
+}
+
+function handleGameOver(winnerText) {
+    isGameOver = true;
+    console.log("Game Over:", winnerText);
     
-    if (!gameLoopId) {
-        gameLoopId = requestAnimationFrame(gameLoop);
-    }
+    setTimeout(() => {
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'white';
+        context.font = `${canvas.width / 15}px 'Press Start 2P'`;
+        context.textAlign = 'center';
+        context.fillText(winnerText, canvas.width / 2, canvas.height / 2);
+        
+        setTimeout(() => {
+            document.getElementById('play-menu').classList.remove('hidden');
+        }, 2000);
+    }, 10);
 }
-
-function stopGameLoop() {
-    if (gameLoopId) {
-        cancelAnimationFrame(gameLoopId);
-        gameLoopId = null;
-        console.log("Game loop stopped.");
-    }
-}
-
-function showGameOver(winnerText) {
-    stopGameLoop();
-    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = 'white';
-    context.font = `${canvas.width / 15}px 'Press Start 2P'`;
-    context.textAlign = 'center';
-    context.fillText(winnerText, canvas.width / 2, canvas.height / 2);
-
-    document.getElementById('play-menu').classList.remove('hidden');
-}
-
-
-// --- LOGIKA INTI GAME ---
 
 function gameLoop() {
+    if (isGameOver) return;
     update();
     render();
-    gameLoopId = requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop);
 }
 
 function update() {
@@ -65,12 +78,23 @@ function update() {
         ball.velocityY = -ball.velocityY;
     }
 
+    let scored = false;
     if (ball.x - ball.radius < 0) {
         computer.score++;
-        resetBall();
+        scored = true;
     } else if (ball.x + ball.radius > canvas.width) {
         player.score++;
-        resetBall();
+        scored = true;
+    }
+    
+    if (scored) {
+        if (player.score >= winningScore) {
+            handleGameOver("YOU WIN!");
+        } else if (computer.score >= winningScore) {
+            handleGameOver("COMPUTER WINS");
+        } else {
+            resetBall();
+        }
     }
     
     let targetPaddle = ball.velocityX < 0 ? player : computer;
@@ -83,26 +107,25 @@ function update() {
         ball.velocityY = ball.speed * Math.sin(angleRad);
         ball.speed += 0.5;
     }
-    
-    if (player.score >= winningScore) {
-        showGameOver("YOU WIN!");
-    } else if (computer.score >= winningScore) {
-        showGameOver("COMPUTER WINS");
-    }
 }
 
 function render() {
+    if (!context || isGameOver) return;
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.font = `${canvas.width / 10}px 'Press Start 2P'`;
     context.textAlign = 'center';
     context.fillText(player.score, canvas.width / 4, canvas.height / 5);
     context.fillText(computer.score, 3 * canvas.width / 4, canvas.height / 5);
+    
+    player.color = equippedPaddleColor;
     context.fillStyle = player.color;
     context.fillRect(player.x, player.y, player.width, player.height);
-    context.fillStyle = computer.color;
+    
+    context.fillStyle = 'white';
     context.fillRect(computer.x, computer.y, computer.width, computer.height);
-    context.fillStyle = ball.color;
+    
+    context.fillStyle = 'white';
     context.beginPath();
     context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
     context.fill();
@@ -117,27 +140,20 @@ function resetBall(){
 }
 
 function collision(b, p){
-    p.top = p.y;
-    p.bottom = p.y + p.height;
-    p.left = p.x;
-    p.right = p.x + p.width;
-    
-    b.top = b.y - b.radius;
-    b.bottom = b.y + b.radius;
-    b.left = b.x - b.radius;
-    b.right = b.x + b.radius;
-    
-    return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+    p.top = p.y; p.bottom = p.y + p.height; p.left = p.x; p.right = p.x + p.width;
+    b.top = b.y - b.radius; b.bottom = b.y + b.radius; b.left = b.x - b.radius; b.right = b.x + b.radius;
+    return p.left < b.right && p.top < b.bottom && p.right > b.left && b.bottom > b.top;
 }
 
 function movePaddle(evt) {
-    if (!canvas) return;
+    if (!canvas || isGameOver) return; // Jangan gerakkan dayung jika game sudah berakhir
     let rect = canvas.getBoundingClientRect();
     player.y = evt.clientY - rect.top - player.height / 2;
 }
 
-
-// --- INISIALISASI & FUNGSI ON-CHAIN ---
+// ... Sisa file (semua fungsi on-chain) tidak perlu diubah ...
+// ... Salin semua fungsi dari initializeGame() ke bawah dari kode sebelumnya ...
+// ... karena tidak ada perubahan di sana ...
 
 export function initializeGame() {
     canvas = document.getElementById('gameCanvas');
@@ -172,7 +188,6 @@ function resizeCanvas() {
 
 function renderStatic() {
     if (!context || !player || !computer || !ball) return;
-    
     player.y = canvas.height / 2 - player.height / 2;
     computer.x = canvas.width - computer.width - 10;
     computer.y = canvas.height / 2 - computer.height / 2;
@@ -185,17 +200,20 @@ function renderStatic() {
     context.textAlign = 'center';
     context.fillText('0', canvas.width / 4, canvas.height / 5);
     context.fillText('0', 3 * canvas.width / 4, canvas.height / 5);
+    
+    player.color = equippedPaddleColor;
     context.fillStyle = player.color;
     context.fillRect(player.x, player.y, player.width, player.height);
-    context.fillStyle = computer.color;
+    
+    context.fillStyle = 'white';
     context.fillRect(computer.x, computer.y, computer.width, computer.height);
-    context.fillStyle = ball.color;
+    
+    context.fillStyle = 'white';
     context.beginPath();
     context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
     context.fill();
 }
 
-// ... (Sisa fungsi on-chain tidak berubah dari versi sebelumnya)
 export async function fetchAndDisplayData(address) {
     const profileCreatorDiv = document.getElementById('profile-creator');
     const onchainInfoDiv = document.getElementById('onchain-info');
@@ -215,6 +233,16 @@ export async function fetchAndDisplayData(address) {
             playerProfileId = playerProfile.data.objectId;
             onchainInfoDiv.classList.remove('hidden');
             profileCreatorDiv.classList.add('hidden');
+            
+            const equippedId = playerProfile.data.content.fields.equipped_paddle;
+            if (equippedId) {
+                const equippedPaddle = paddles.find(p => p.data.objectId === equippedId);
+                equippedPaddleColor = equippedPaddle ? equippedPaddle.data.content.fields.color_hex : 'white';
+            } else {
+                equippedPaddleColor = 'white';
+            }
+            renderStatic();
+            
             displayPaddles(paddles, playerProfile);
             addInventoryClickListener();
         }
@@ -237,16 +265,25 @@ function displayPaddles(paddles, profile) {
     }
     inventoryDiv.innerHTML = '';
     const equippedId = profile ? profile.data.content.fields.equipped_paddle : null;
+    
     paddles.forEach(paddle => {
         const fields = paddle.data.content.fields;
         const paddleId = paddle.data.objectId;
         const isEquipped = paddleId === equippedId;
+        
+        // === TAMBAHKAN BARIS INI KEMBALI ===
+        const rarity = fields.rarity.toLowerCase();
+
         const paddleDiv = document.createElement('div');
         paddleDiv.className = 'paddle-item' + (isEquipped ? ' equipped' : '');
+        
         paddleDiv.innerHTML = `
-            <p style="background-color:${fields.color_hex}; color: white; padding: 2px 4px; display:inline-block; border: 1px solid white;"><strong>${fields.rarity}</strong></p>
-            <p>Bonus: +${fields.speed_bonus} speed</p>
-            ${isEquipped ? '<strong>(Equipped)</strong>' : `<button class="equip-btn" data-id="${paddleId}">Equip</button>`}
+            <img src="/${rarity}.png" alt="${fields.rarity} Paddle" class="item-image small" />
+            <div class="item-details">
+                <p style="background-color:${fields.color_hex}; color: white; padding: 2px 4px; display:inline-block; border: 1px solid white;"><strong>${fields.rarity}</strong></p>
+                <p>Bonus: +${fields.speed_bonus} speed</p>
+                ${isEquipped ? '<strong>(Equipped)</strong>' : `<button class="equip-btn" data-id="${paddleId}">Equip</button>`}
+            </div>
         `;
         inventoryDiv.appendChild(paddleDiv);
     });
@@ -296,9 +333,9 @@ function displayMarketplaceItems(listings) {
     const marketplaceDiv = document.getElementById('marketplace-display');
     marketplaceDiv.innerHTML = '';
     const items = [
-        { name: "Legendary", data: listings.legendary_listing },
-        { name: "Epic", data: listings.epic_listing },
-        { name: "Master", data: listings.master_listing },
+        { name: "Legendary", data: listings.legendary_listing, img: "/legendary.png" },
+        { name: "Epic", data: listings.epic_listing, img: "/epic.png" },
+        { name: "Master", data: listings.master_listing, img: "/master.png" },
     ];
     items.forEach(item => {
         const fields = item.data.fields;
@@ -307,16 +344,19 @@ function displayMarketplaceItems(listings) {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'market-item';
         itemDiv.innerHTML = `
-            <h4>${item.name} Paddle</h4>
-            <p>Price: ${priceInSUI.toFixed(1)} SUI</p>
-            <p>Stock: ${remaining} / ${fields.supply}</p>
-            <button class="buy-btn" data-rarity="${item.name}" data-price="${priceInSUI}" ${remaining === 0 ? 'disabled' : ''}>
-                ${remaining === 0 ? 'Sold Out' : 'Buy'}
-            </button>
-        `;
-        marketplaceDiv.appendChild(itemDiv);
-    });
-}
+                <img src="${item.img}" alt="${item.name} Paddle" class="item-image" />
+                <div class="item-details">
+                    <h4>${item.name} Paddle</h4>
+                    <p>Price: ${priceInSUI.toFixed(1)} SUI</p>
+                    <p>Stock: ${remaining} / ${fields.supply}</p>
+                </div>
+                <button class="buy-btn" data-rarity="${item.name}" data-price="${priceInSUI}" ${remaining === 0 ? 'disabled' : ''}>
+                    ${remaining === 0 ? 'Sold Out' : 'Buy'}
+                </button>
+            `;
+            marketplaceDiv.appendChild(itemDiv);
+        });
+    }
 
 function addMarketplaceClickListener() {
     const marketplaceDiv = document.getElementById('marketplace-display');

@@ -39,3 +39,10 @@ Profil Pemain Dibuat: Transaksi kedua berhasil membuat profil untuk Anda.
 ID Profil Anda: 0xd9676d9751c2a1b56ef3424542a8ed9c3e42b9b661df9dcbfb753622a6a121f0
 Dayung Legendary Dicetak (Minted): Transaksi ketiga berhasil membuat NFT dayung untuk Anda.
 ID Dayung Anda: 0x73d60cbc79118ce4f03fe2ed37ccd0144ce37238dabd18488d599c60f613301c
+----------------------------------------------------------------------------------
+PackageID (MASTER ID):
+0x078ccfaf1fdfbbb6020461d94e154f845fd5cf7aba114fba919a4067aa4c9145
+AdminCap untuk Marketplace:
+ObjectID: 0x1532b98120ce977eb57fb2355471a9b76ec7c8679f55932fe425d4494b444812
+TreasuryCap untuk Koin $DP:
+ObjectID: 0xdd0e8dd7b85d30c129763b599ec1ea41eb68fcfab1b84aee7220670bf6bd5853
